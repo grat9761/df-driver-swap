@@ -1,0 +1,6 @@
+id=dfdriverswap
+name=Delta Force Driver Swap (munch)
+version=1.0
+versionCode=1
+author=see README
+description=Loads Turnip 24.1.0 R18 into the Delta Force process only; system keeps its stock driver (advanced blur unaffected).
