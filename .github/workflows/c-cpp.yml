@@ -1,23 +1,29 @@
-name: C/C++ CI
-
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
+name: build
+on: [workflow_dispatch]
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-    - name: configure
-      run: ./configure
-    - name: make
-      run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+      - uses: actions/checkout@v4
+      - uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26b
+      - name: Configure
+        run: |
+          cmake -B build -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
+            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-29 -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build -j$(nproc)
+      - name: Package Magisk module
+        run: |
+          mkdir -p out/zygisk/arm64-v8a out/hooks/arm64-v8a
+          cp build/libmodule.so out/zygisk/arm64-v8a/module.so
+          cp module.prop out/
+          cp driver/libvulkan_freedreno.so out/driver_libvulkan_freedreno.so
+          # adrenotools hook libraries (names vary by version) -- copy them all next to the payload
+          find build -name "*.so" ! -name "libmodule.so" -exec cp {} out/hooks/arm64-v8a/ \;
+          cd out && zip -r9 ../df-driver-swap-munch.zip . && cd ..
+      - uses: actions/upload-artifact@v4
+        with:
+          name: df-driver-swap-munch
+          path: df-driver-swap-munch.zip
